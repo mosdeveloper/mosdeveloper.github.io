@@ -1,77 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
   <title>Zoom Meeting</title>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- ✅ Use the Zoom Web SDK bundle (CSS + JS from CDN) -->
-  <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.14.2/css/bootstrap.css" />
-  <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.14.2/css/react-select.css" />
-  <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.14.2/css/zoom.css" />
-
+  
+  <!-- Required dependencies (from Zoom CDN) -->
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/react.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/react-dom.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux-thunk.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/lodash.min.js"></script>
+  
+  <!-- Zoom Web SDK -->
+  <script src="https://source.zoom.us/zoom-meeting-3.11.5.min.js"></script>
+  <link rel="stylesheet" href="https://source.zoom.us/3.11.5/css/bootstrap.css" />
+  <link rel="stylesheet" href="https://source.zoom.us/3.11.5/css/react-select.css" />
+  
   <style>
-    body, html {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    #zmmtg-root {
-      height: 100%;
-      width: 100%;
-    }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #zmmtg-root { height: 100%; }
   </style>
 </head>
 <body>
   <div id="zmmtg-root"></div>
-  <div id="aria-notify-area"></div>
-
-  <!-- ✅ Zoom Web SDK bundle -->
-  <script src="https://source.zoom.us/3.14.2/lib/vendor/react.min.js"></script>
-  <script src="https://source.zoom.us/3.14.2/lib/vendor/react-dom.min.js"></script>
-  <script src="https://source.zoom.us/3.14.2/lib/vendor/redux.min.js"></script>
-  <script src="https://source.zoom.us/3.14.2/lib/vendor/redux-thunk.min.js"></script>
-  <script src="https://source.zoom.us/3.14.2/lib/vendor/lodash.min.js"></script>
-  <script src="https://source.zoom.us/3.14.2/zoom-meeting-3.14.2.min.js"></script>
-
   <script>
     // Parse URL params
-    const params = new URLSearchParams(window.location.search);
-    const sdkKey = params.get("sdkKey");
-    const meetingNumber = params.get("meetingNumber");
-    const userName = params.get("userName");
-    const userEmail = params.get("userEmail");
-    const passWord = params.get("password");
-    const role = parseInt(params.get("role") || "0");
-    const signature = params.get("signature");
+    const urlParams = new URLSearchParams(window.location.search);
+    const sdkKey = urlParams.get("sdkKey");
+    const signature = urlParams.get("signature");
+    const meetingNumber = urlParams.get("meetingNumber");
+    const userName = urlParams.get("userName");
+    const userEmail = urlParams.get("userEmail");
+    const passWord = urlParams.get("password");
+    const role = parseInt(urlParams.get("role") || "0");
 
-    console.log("Joining meeting:", { meetingNumber, userName });
-
-    ZoomMtg.setZoomJSLib("https://source.zoom.us/3.14.2/lib", "/av");
+    ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av");
     ZoomMtg.preLoadWasm();
     ZoomMtg.prepareWebSDK();
 
     ZoomMtg.init({
       leaveUrl: "https://zoom.us",
-      success: function () {
+      success: () => {
         ZoomMtg.join({
-          signature: signature,
-          sdkKey: sdkKey,
-          meetingNumber: meetingNumber,
-          userName: userName,
-          userEmail: userEmail,
-          passWord: passWord,
-          success: function () {
-            console.log("Join meeting success");
-          },
-          error: function (err) {
-            console.error("Join error", err);
-          },
+          sdkKey,
+          signature,
+          meetingNumber,
+          userName,
+          userEmail,
+          passWord,
+          success: () => console.log("Joined meeting"),
+          error: (err) => console.error("Join error", err)
         });
       },
-      error: function (err) {
-        console.error("Init error", err);
-      },
+      error: (err) => console.error("Init error", err)
     });
   </script>
 </body>
