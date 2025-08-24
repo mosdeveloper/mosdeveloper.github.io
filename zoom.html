@@ -5,13 +5,8 @@
   <title>Zoom Meeting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Zoom Web SDK dependencies -->
-  <script src="https://source.zoom.us/3.11.5/lib/vendor/react.min.js"></script>
-  <script src="https://source.zoom.us/3.11.5/lib/vendor/react-dom.min.js"></script>
-  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux.min.js"></script>
-  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux-thunk.min.js"></script>
-  <script src="https://source.zoom.us/3.11.5/lib/vendor/lodash.min.js"></script>
-  <script src="https://source.zoom.us/zoom-meeting-3.11.5.min.js"></script>
+  <!-- ✅ Load Zoom Web SDK (UMD bundle) -->
+  <script src="https://source.zoom.us/3.11.5/zoom-meeting-3.11.5.min.js"></script>
 
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
@@ -22,7 +17,6 @@
   <div id="zmmtg-root"></div>
 
   <script>
-    // 🔹 Parse query parameters from URL
     function getQueryParam(name) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(name);
@@ -34,13 +28,12 @@
       userName: getQueryParam("userName") || "Guest",
       userEmail: getQueryParam("userEmail"),
       passWord: getQueryParam("password"),
-      role: parseInt(getQueryParam("role") || "0"), // 0 = attendee, 1 = host
+      role: parseInt(getQueryParam("role") || "0"),
       signature: getQueryParam("signature")
     };
 
     console.log("Joining Zoom with config:", meetConfig);
 
-    // 🔹 Initialize Zoom Web SDK
     ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av");
     ZoomMtg.preLoadWasm();
     ZoomMtg.prepareWebSDK();
