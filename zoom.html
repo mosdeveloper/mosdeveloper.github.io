@@ -5,7 +5,14 @@
   <title>Zoom Meeting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- ✅ Load Zoom Web SDK (UMD bundle) -->
+  <!-- ✅ Load Zoom Web SDK -->
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/react.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/react-dom.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/redux-thunk.min.js"></script>
+  <script src="https://source.zoom.us/3.11.5/lib/vendor/lodash.min.js"></script>
+
+  <!-- ✅ This is the important one -->
   <script src="https://source.zoom.us/3.11.5/zoom-meeting-3.11.5.min.js"></script>
 
   <style>
@@ -17,6 +24,7 @@
   <div id="zmmtg-root"></div>
 
   <script>
+    // Helper to read query parameters
     function getQueryParam(name) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(name);
@@ -34,25 +42,33 @@
 
     console.log("Joining Zoom with config:", meetConfig);
 
-    ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av");
-    ZoomMtg.preLoadWasm();
-    ZoomMtg.prepareWebSDK();
+    // ✅ Wait until DOM and SDK are ready
+    document.addEventListener("DOMContentLoaded", function() {
+      if (typeof ZoomMtg === "undefined") {
+        console.error("ZoomMtg is not loaded!");
+        return;
+      }
 
-    ZoomMtg.init({
-      leaveUrl: "about:blank",
-      success: () => {
-        ZoomMtg.join({
-          signature: meetConfig.signature,
-          sdkKey: meetConfig.sdkKey,
-          meetingNumber: meetConfig.meetingNumber,
-          userName: meetConfig.userName,
-          userEmail: meetConfig.userEmail,
-          passWord: meetConfig.passWord,
-          success: () => console.log("✅ Join success"),
-          error: (err) => console.error("❌ Join error", err)
-        });
-      },
-      error: (err) => console.error("❌ Init error", err)
+      ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av");
+      ZoomMtg.preLoadWasm();
+      ZoomMtg.prepareWebSDK();
+
+      ZoomMtg.init({
+        leaveUrl: "about:blank",
+        success: () => {
+          ZoomMtg.join({
+            signature: meetConfig.signature,
+            sdkKey: meetConfig.sdkKey,
+            meetingNumber: meetConfig.meetingNumber,
+            userName: meetConfig.userName,
+            userEmail: meetConfig.userEmail,
+            passWord: meetConfig.passWord,
+            success: () => console.log("✅ Join success"),
+            error: (err) => console.error("❌ Join error", err)
+          });
+        },
+        error: (err) => console.error("❌ Init error", err)
+      });
     });
   </script>
 </body>
