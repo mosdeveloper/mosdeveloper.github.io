@@ -2,73 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Zoom Meeting</title>
+  <title>Zoom Meeting Embed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Zoom Web SDK -->
-  <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.11.5/css/bootstrap.css" />
-  <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.11.5/css/react-select.css" />
+  <!-- Zoom Web SDK CSS -->
+  <link rel="stylesheet" href="https://source.zoom.us/3.11.5/css/bootstrap.css" />
+  <link rel="stylesheet" href="https://source.zoom.us/3.11.5/css/react-select.css" />
 </head>
 <body>
   <div id="zmmtg-root"></div>
   <div id="aria-notify-area"></div>
   <div id="meetingSDKElement"></div>
 
-  <!-- Load SDK scripts -->
+  <!-- Load Zoom Web SDK JS -->
   <script src="https://source.zoom.us/3.11.5/lib/vendor/react.min.js"></script>
   <script src="https://source.zoom.us/3.11.5/lib/vendor/react-dom.min.js"></script>
   <script src="https://source.zoom.us/3.11.5/lib/vendor/redux.min.js"></script>
   <script src="https://source.zoom.us/3.11.5/lib/vendor/redux-thunk.min.js"></script>
   <script src="https://source.zoom.us/3.11.5/lib/vendor/lodash.min.js"></script>
+
+  <!-- Main Zoom JS -->
   <script src="https://source.zoom.us/zoom-meeting-3.11.5.min.js"></script>
 
   <script>
-    window.addEventListener("load", () => {
+    async function initZoom() {
       // Parse query params
       const params = new URLSearchParams(window.location.search);
       const sdkKey = params.get("sdkKey");
       const meetingNumber = params.get("meetingNumber");
-      const userName = params.get("userName") || "Guest";
-      const userEmail = params.get("userEmail") || "";
-      const passWord = params.get("password") || "";
-      const role = parseInt(params.get("role") || "0");
+      const userName = params.get("userName");
+      const userEmail = params.get("userEmail");
+      const passWord = params.get("password");
+      const role = parseInt(params.get("role"), 10) || 0;
       const signature = params.get("signature");
 
       if (!sdkKey || !meetingNumber || !userName || !signature) {
-        alert("Missing required parameters!");
+        alert("Missing required parameters");
         return;
       }
 
-      // Initialize ZoomMtg
-      ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av"); 
+      console.log("ZoomMtg:", ZoomMtg); // ✅ Should NOT be undefined
+
+      ZoomMtg.setZoomJSLib("https://source.zoom.us/3.11.5/lib", "/av");
       ZoomMtg.preLoadWasm();
       ZoomMtg.prepareWebSDK();
 
       ZoomMtg.init({
         leaveUrl: "https://github.com/",
-        success: () => {
+        success: function () {
           ZoomMtg.join({
-            sdkKey: sdkKey,
-            signature: signature,
-            meetingNumber: meetingNumber,
-            userName: userName,
-            userEmail: userEmail,
-            passWord: passWord,
-            success: () => {
-              console.log("Join meeting success");
+            sdkKey,
+            signature,
+            meetingNumber,
+            userName,
+            userEmail,
+            passWord,
+            tk: "",
+            success: function () {
+              console.log("Join success");
             },
-            error: (err) => {
+            error: function (err) {
               console.error("Join error", err);
-              alert("Zoom join error: " + JSON.stringify(err));
             },
           });
         },
-        error: (err) => {
+        error: function (err) {
           console.error("Init error", err);
-          alert("Zoom init error: " + JSON.stringify(err));
         },
       });
-    });
+    }
+
+    window.onload = initZoom;
   </script>
 </body>
 </html>
