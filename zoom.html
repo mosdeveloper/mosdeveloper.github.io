@@ -1,144 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Zoom Meeting (CDN + Fallback + Debug)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <title>Zoom Meeting</title>
 
-  <style>
-    html, body { height: 100%; margin: 0; }
-    #zmmtg-root { height: 100%; width: 100%; }
-    #aria-notify-area { position: absolute; left: -9999px; }
-    #debug {
-      position: fixed; top: 12px; right: 12px; z-index: 99999;
-      font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: rgba(0,0,0,.8); color: #fff; padding: 10px 12px; border-radius: 8px; max-width: 360px;
-      box-shadow: 0 6px 20px rgba(0,0,0,.35); white-space: pre-wrap;
-    }
-    #debug b { color: #7dd3fc; }
-    .ok { color: #86efac; }
-    .bad { color: #fca5a5; }
-  </style>
+    <!-- Zoom CSS -->
+    <link rel="stylesheet" href="https://source.zoom.us/3.12.0/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://source.zoom.us/3.12.0/css/react-select.css" />
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000; /* optional for better video view */
+        }
+
+        #zmmtg-root {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+        }
+
+        #aria-notify-area {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div id="zmmtg-root"></div>
-  <div id="aria-notify-area"></div>
-  <div id="debug">starting…</div>
+    <!-- Required Zoom containers -->
+    <div id="zmmtg-root"></div>
+    <div id="aria-notify-area"></div>
+
+   <!-- Dependencies -->
+  <script src="https://source.zoom.us/3.12.0/lib/vendor/react.min.js"></script>
+  <script src="https://source.zoom.us/3.12.0/lib/vendor/react-dom.min.js"></script>
+  <script src="https://source.zoom.us/3.12.0/lib/vendor/redux.min.js"></script>
+  <script src="https://source.zoom.us/3.12.0/lib/vendor/redux-thunk.min.js"></script>
+  <script src="https://source.zoom.us/3.12.0/lib/vendor/lodash.min.js"></script>
+
+  <!-- Zoom SDK -->
+  <script src="https://source.zoom.us/zoom-meeting-3.12.0.min.js"></script>
 
   <script>
-    // ---------- helpers ----------
-    const D = document.getElementById('debug');
-    const log = (msg) => { D.innerHTML += '\\n' + msg; console.log(msg); };
-    const q = (k, d='') => new URLSearchParams(location.search).get(k) ?? d;
-    const loadScript = (src) => new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src; s.async = false;
-      s.onload = () => resolve(src);
-      s.onerror = () => reject(new Error('load fail: ' + src));
-      document.head.appendChild(s);
-    });
-    const loadCss = (href) => new Promise((resolve, reject) => {
-      const l = document.createElement('link');
-      l.rel = 'stylesheet'; l.href = href;
-      l.onload = () => resolve(href);
-      l.onerror = () => reject(new Error('css fail: ' + href));
-      document.head.appendChild(l);
-    });
+      document.addEventListener("DOMContentLoaded", function () {
+          ZoomMtg.setZoomJSLib("https://source.zoom.us/3.12.0/lib", "/av");
+            ZoomMtg.preLoadWasm();
+            ZoomMtg.prepareWebSDK();
 
-    (async () => {
-      const ver = q('ver', '3.14.2');      // ✅ override version via ?ver=3.14.2
-      const cdns = [
-        `https://source.zoom.us/${ver}`,
-        `https://jssdk.zoomus.cn/${ver}`  // ✅ fallback CDN (often works if source.zoom.us is blocked)
-      ];
-
-      const vendorFiles = [
-        'lib/vendor/react.min.js',
-        'lib/vendor/react-dom.min.js',
-        'lib/vendor/redux.min.js',
-        'lib/vendor/redux-thunk.min.js',
-        'lib/vendor/lodash.min.js'
-      ];
-      const cssFiles = [
-        `css/bootstrap.css`,
-        `css/react-select.css`,
-        `css/zoom.css`
-      ];
-
-      let base = null;
-
-      // Try CDNs in order
-      for (const cdn of cdns) {
-        try {
-          D.innerHTML = `trying CDN: ${cdn}`;
-          // CSS first (non-blocking errors, but we’ll log them)
-          for (const css of cssFiles) {
-            try { await loadCss(`${cdn}/${css}`); log(`css ok: ${cdn}/${css}`); }
-            catch (e) { log(`<span class="bad">${e.message}</span>`); }
-          }
-          // vendor JS, then the UMD
-          for (const vf of vendorFiles) {
-            await loadScript(`${cdn}/${vf}`);
-            log(`<span class="ok">js ok:</span> ${cdn}/${vf}`);
-          }
-          await loadScript(`${cdn}/zoom-meeting-${ver}.min.js`);
-          log(`<span class="ok">js ok:</span> ${cdn}/zoom-meeting-${ver}.min.js`);
-
-          if (window.ZoomMtg) { base = cdn; break; }
-          throw new Error('ZoomMtg still undefined after load');
-        } catch (e) {
-          log(`<span class="bad">${cdn} failed:</span> ${e.message}`);
-          // clean slate for next attempt (not strictly necessary for a new page load)
-        }
-      }
-
-      if (!base || typeof window.ZoomMtg === 'undefined') {
-        log('\\n❌ <b>SDK load failed</b>. Likely causes:');
-        log('- network/extension/firewall blocking source.zoom.us and jssdk.zoomus.cn');
-        log('- wrong version in ?ver= (try ?ver=3.12.0 or ?ver=3.11.5)');
-        log('- corporate CSP blocking remote scripts');
-        return;
-      }
-
-      // ---------- Zoom init/join ----------
-      const sdkKey        = q('sdkKey');
-      const meetingNumber = q('meetingNumber');
-      const userName      = q('userName', 'Guest');
-      const userEmail     = q('userEmail', '');
-      const passWord      = q('password', '');
-      const role          = parseInt(q('role', '0'), 10);
-      const signature     = q('signature');
-
-      if (!sdkKey || !meetingNumber || !signature) {
-        log('\\n❗ Missing required params: sdkKey, meetingNumber, signature');
-        return;
-      }
-
-      log(`\\nusing base: ${base}`);
-      ZoomMtg.setZoomJSLib(`${base}/lib`, '/av');
-      ZoomMtg.preLoadWasm();
-      ZoomMtg.prepareWebSDK();
-      try { ZoomMtg.i18n.load('en-US'); ZoomMtg.i18n.reload('en-US'); } catch {}
-
-      log('init…');
-      ZoomMtg.init({
-        leaveUrl: 'about:blank',
-        success: () => {
-          log('join…');
-          ZoomMtg.join({
-            signature,
-            sdkKey,
-            meetingNumber,
-            userName,
-            userEmail,
-            passWord,
-            success: () => log('<span class="ok">✅ joined</span>'),
-            error:  (err) => { console.error(err); log(`<span class="bad">join error:</span> ${JSON.stringify(err)}`); }
-          });
-        },
-        error: (err) => { console.error(err); log(`<span class="bad">init error:</span> ${JSON.stringify(err)}`); }
-      });
-    })();
-  </script>
+            ZoomMtg.init({
+                leaveUrl: "https://yourapp.com/leave",
+                isSupportAV: true,
+                success: function () {
+                    ZoomMtg.join({
+                        sdkKey: "vDbyOTF3TKiNKHSBHR0Xw",
+                        signature: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBLZXkiOiJ2RGJ5T1RGM1RLaU5LSFNCSFIwWHciLCJzZGtLZXkiOiJ2RGJ5T1RGM1RLaU5LSFNCSFIwWHciLCJtbiI6IjUxMzcwNjAzMDkiLCJyb2xlIjowLCJ0b2tlbkV4cCI6MTc1NjEwNDQ5OSwiaWF0IjoxNzU2MTAwODk5LCJleHAiOjE3NTYxMDQ0OTl9.xe5mWf1js6H0lBHeVOt0GGdQzKpR7JlIcZEPMoQszNg",
+                        meetingNumber: "5137060309",
+                        userName: "MAUI User",
+                        passWord: "MEETING_PASSWORD",
+                        success: function () {
+                            console.log("Joined meeting successfully");
+                        },
+                        error: function (err) {
+                            console.error(err);
+                        }
+                    });
+                },
+                error: function (err) {
+                    console.error(err);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
